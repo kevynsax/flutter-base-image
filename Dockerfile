@@ -1,5 +1,6 @@
 # Multi-platform Flutter base image
-# Supports: linux/amd64, linux/arm64, linux/arm/v7
+# Supports: linux/amd64, linux/arm64
+# Note: ARM/v7 (32-bit) is not supported by Flutter's Dart SDK
 
 FROM debian:bookworm-slim
 
@@ -23,17 +24,22 @@ RUN apt-get update -y && apt-get upgrade -y && \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Flutter SDK from git repository
-# This approach works for all architectures (amd64, arm64, arm/v7)
-# as Flutter will build/download the appropriate binaries for the host architecture
-RUN git clone https://github.com/flutter/flutter.git ${FLUTTER_HOME} && \
+# Clone and checkout the specific stable branch instead of a tag
+RUN git clone --depth 1 --branch stable https://github.com/flutter/flutter.git ${FLUTTER_HOME} && \
     cd ${FLUTTER_HOME} && \
+    git config --global --add safe.directory ${FLUTTER_HOME} && \
+    git fetch --depth=1 origin tag ${FLUTTER_VERSION} && \
     git checkout ${FLUTTER_VERSION} && \
-    git config --global --add safe.directory ${FLUTTER_HOME}
+    rm -rf ${FLUTTER_HOME}/.git
 
 # Pre-cache Flutter dependencies and configure for web
-RUN flutter precache --web && \
+# The first flutter command will download the correct Dart SDK for the platform
+RUN flutter doctor -v && \
+    flutter precache --web && \
     flutter config --enable-web && \
-    flutter --version
+    flutter --version && \
+    rm -rf ${FLUTTER_HOME}/.pub-cache/hosted/pub.dartlang.org/*/test && \
+    rm -rf ${FLUTTER_HOME}/.pub-cache/hosted/pub.dartlang.org/*/example
 
 # Set working directory
 WORKDIR /app
