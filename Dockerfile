@@ -29,15 +29,16 @@ RUN git clone --depth 1 --branch stable https://github.com/flutter/flutter.git $
     cd ${FLUTTER_HOME} && \
     git config --global --add safe.directory ${FLUTTER_HOME} && \
     git fetch --depth=1 origin tag ${FLUTTER_VERSION} && \
-    git checkout ${FLUTTER_VERSION} && \
-    rm -rf ${FLUTTER_HOME}/.git
+    git checkout ${FLUTTER_VERSION}
 
 # Pre-cache Flutter dependencies and configure for web
 # The first flutter command will download the correct Dart SDK for the platform
+# Clean up .git directory and unnecessary files after Flutter setup to reduce image size
 RUN flutter doctor -v && \
     flutter precache --web && \
     flutter config --enable-web && \
     flutter --version && \
+    rm -rf ${FLUTTER_HOME}/.git && \
     rm -rf ${FLUTTER_HOME}/.pub-cache/hosted/pub.dartlang.org/*/test && \
     rm -rf ${FLUTTER_HOME}/.pub-cache/hosted/pub.dartlang.org/*/example
 
