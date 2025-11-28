@@ -31,8 +31,9 @@ RUN mkdir -p /opt && \
     tar -xf /tmp/flutter.tar.xz -C /opt && \
     rm /tmp/flutter.tar.xz
 
-# Pre-download Flutter dependencies and accept licenses
-RUN flutter precache --web && \
+# Configure Git to allow Flutter directory and pre-download Flutter dependencies
+RUN git config --global --add safe.directory /opt/flutter && \
+    flutter precache --web && \
     flutter config --enable-web && \
     flutter --version
 
