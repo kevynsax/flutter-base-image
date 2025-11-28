@@ -4,15 +4,12 @@
 
 FROM debian:bookworm-slim
 
-# Read Flutter version from build arg
 ARG FLUTTER_VERSION
 ENV FLUTTER_VERSION=${FLUTTER_VERSION}
 
-# Set Flutter installation directory
 ENV FLUTTER_HOME=/opt/flutter
 ENV PATH="${FLUTTER_HOME}/bin:${PATH}"
 
-# Install prerequisite packages
 RUN apt-get update -y && apt-get upgrade -y && \
     apt-get install -y \
     curl \
@@ -23,27 +20,19 @@ RUN apt-get update -y && apt-get upgrade -y && \
     libglu1-mesa \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Flutter SDK from git repository
-# Clone and checkout the specific stable branch instead of a tag
 RUN git clone --depth 1 --branch stable https://github.com/flutter/flutter.git ${FLUTTER_HOME} && \
     cd ${FLUTTER_HOME} && \
     git config --global --add safe.directory ${FLUTTER_HOME} && \
     git fetch --depth=1 origin tag ${FLUTTER_VERSION} && \
     git checkout ${FLUTTER_VERSION}
 
-# Pre-cache Flutter dependencies and configure for web
-# The first flutter command will download the correct Dart SDK for the platform
-# Clean up .git directory and unnecessary files after Flutter setup to reduce image size
 RUN flutter doctor -v && \
     flutter precache --web && \
     flutter config --enable-web && \
     flutter --version && \
-    rm -rf ${FLUTTER_HOME}/.git && \
     rm -rf ${FLUTTER_HOME}/.pub-cache/hosted/pub.dartlang.org/*/test && \
     rm -rf ${FLUTTER_HOME}/.pub-cache/hosted/pub.dartlang.org/*/example
 
-# Set working directory
 WORKDIR /app
 
-# Default command
 CMD ["/bin/bash"]
