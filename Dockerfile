@@ -5,7 +5,6 @@ FROM debian:bookworm-slim
 
 # Read Flutter version from build arg
 ARG FLUTTER_VERSION
-ARG TARGETARCH
 ENV FLUTTER_VERSION=${FLUTTER_VERSION}
 
 # Set Flutter installation directory
@@ -23,25 +22,16 @@ RUN apt-get update -y && apt-get upgrade -y && \
     libglu1-mesa \
     && rm -rf /var/lib/apt/lists/*
 
-# Download and extract Flutter SDK based on architecture
-RUN mkdir -p /opt && \
-    if [ "$TARGETARCH" = "amd64" ]; then \
-        FLUTTER_URL="https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz"; \
-    elif [ "$TARGETARCH" = "arm64" ]; then \
-        FLUTTER_URL="https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_arm64_${FLUTTER_VERSION}-stable.tar.xz"; \
-    elif [ "$TARGETARCH" = "arm" ]; then \
-        FLUTTER_URL="https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_arm64_${FLUTTER_VERSION}-stable.tar.xz"; \
-    else \
-        echo "Unsupported architecture: $TARGETARCH"; exit 1; \
-    fi && \
-    echo "Downloading Flutter for $TARGETARCH from $FLUTTER_URL" && \
-    curl -o /tmp/flutter.tar.xz ${FLUTTER_URL} && \
-    tar -xf /tmp/flutter.tar.xz -C /opt && \
-    rm /tmp/flutter.tar.xz
+# Install Flutter SDK from git repository
+# This approach works for all architectures (amd64, arm64, arm/v7)
+# as Flutter will build/download the appropriate binaries for the host architecture
+RUN git clone https://github.com/flutter/flutter.git ${FLUTTER_HOME} && \
+    cd ${FLUTTER_HOME} && \
+    git checkout ${FLUTTER_VERSION} && \
+    git config --global --add safe.directory ${FLUTTER_HOME}
 
-# Configure Git to allow Flutter directory and pre-download Flutter dependencies
-RUN git config --global --add safe.directory /opt/flutter && \
-    flutter precache --web && \
+# Pre-cache Flutter dependencies and configure for web
+RUN flutter precache --web && \
     flutter config --enable-web && \
     flutter --version
 
